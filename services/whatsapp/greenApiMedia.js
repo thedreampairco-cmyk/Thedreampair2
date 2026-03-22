@@ -1,6 +1,7 @@
 import axios from "axios";
 import { ENV } from "../../config/env.js";
 import { handleError } from "../../errorHandler.js";
+import { normalizeImageUrl } from "../../urlHelper.js";
 
 const BASE_URL = `https://api.green-api.com/waInstance${ENV.GREEN_API_ID_INSTANCE}`;
 
@@ -22,13 +23,16 @@ const getFileNameFromUrl = (url) => {
  */
 export const sendImageMessage = async (chatId, imageUrl, caption = "") => {
   try {
+    // ✅ Normalize (handles Google Drive links)
+    const finalUrl = normalizeImageUrl(imageUrl);
+
     const url = `${BASE_URL}/sendFileByUrl/${ENV.GREEN_API_API_TOKEN_INSTANCE}`;
 
-    const fileName = getFileNameFromUrl(imageUrl);
+    const fileName = getFileNameFromUrl(finalUrl);
 
     const payload = {
       chatId: chatId,
-      urlFile: imageUrl,
+      urlFile: finalUrl,
       fileName: fileName,
       caption: caption,
     };
