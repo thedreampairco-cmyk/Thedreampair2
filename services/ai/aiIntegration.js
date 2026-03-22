@@ -9,20 +9,36 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export const generateAIResponse = async (chatId, userMessage) => {
   try {
+    console.log("\n🧠 USER QUERY:", userMessage);
+
     const history = getUserMemory(chatId);
 
-    // 🔥 Fetch relevant catalog (basic name-based filtering for now)
-    // 🔥 Clean user query for better matching
-const cleanedQuery = userMessage
-  .toLowerCase()
-  .replace(/price|cost|rs|₹|\?|under|above/g, "")
-  .trim();
+    // Step 1: Raw fetch
+    const fullCatalog = await getFilteredCatalog();
+    console.log("📦 FULL CATALOG COUNT:", fullCatalog.length);
 
-// Fetch catalog using cleaned query
-const catalog = await getFilteredCatalog({ name: cleanedQuery });
-    // Convert catalog to string (keep it lightweight)
-    const catalogContext = catalog.length
-      ? JSON.stringify(catalog.slice(0, 5)) // limit to 5 products
+    // Step 2: Clean query
+    const cleanedQuery = userMessage
+      .toLowerCase()
+      .replace(/price|cost|rs|₹|\?|under|above/g, "")
+      .trim();
+
+    console.log("🧹 CLEANED QUERY:", cleanedQuery);
+
+    const keywords = cleanedQuery.split(" ").filter(word => word.length > 2);
+    console.log("🔑 KEYWORDS:", keywords);
+
+    // Step 3: Filtering
+    const matchedProducts = fullCatalog.filter(product => {
+      const name = product.name.toLowerCase();
+
+      return keywords.some(keyword => name.includes(keyword));
+    });
+
+    console.log("🎯 MATCHED PRODUCTS:", matchedProducts);
+
+    const catalogContext = matchedProducts.length
+      ? JSON.stringify(matchedProducts.slice(0, 5))
       : "No matching products found.";
 
     const response = await axios.post(
