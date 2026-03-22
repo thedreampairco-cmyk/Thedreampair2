@@ -1,0 +1,74 @@
+import axios from "axios";
+import { GOOGLE_SHEETS_API_KEY } from "../../config/env.js";
+import { handleError } from "../../errorHandler.js";
+
+const SHEET_ID = "1ElneBHWnZjpyA-JYGmanZZ7aKvfjK-OsnrMbPpBAfUI";
+const SHEET_NAME = "PRODUCTS";
+
+/**
+ * Fetch raw data from Google Sheets
+ */
+const fetchSheetData = async () => {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${GOOGLE_SHEETS_API_KEY}`;
+
+    const response = await axios.get(url);
+
+    return response.data.values;
+  } catch (error) {
+    handleError("Google Sheets Fetch Error", error);
+    return null;
+  }
+};
+
+/**
+ * Validate image URL (CRITICAL RULE ENFORCER)
+ */
+const isValidImageUrl = (url) => {
+  if (!url) return false;
+
+  return (
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  );
+};
+
+/**
+ * Normalize sheet data into structured JSON
+ */
+const normalizeData = (rows) => {
+  if (!rows || rows.length < 2) return [];
+
+  const headers = rows[0];
+
+  return rows.slice(1).map((row) => {
+    const imageRaw = row[headers.indexOf("Image")] || "";
+
+    return {
+      id: row[headers.indexOf("ID")] || "",
+      name: row[headers.indexOf("Name")] || "",
+      category: row[headers.indexOf("Catagory")] || "",
+      color: row[headers.indexOf("Colour")] || "",
+      price: row[headers.indexOf("Price")] || "",
+      sizes: row[headers.indexOf("Sizes")] || "",
+      stock: row[headers.indexOf("Stock")] || "",
+      image: isValidImageUrl(imageRaw) ? imageRaw : null, // STRICT RULE
+      gender: row[headers.indexOf("Gender Preference")] || "",
+    };
+  });
+};
+
+/**
+ * Public function to get catalog
+ */
+export const getCatalogData = async () => {
+  try {
+    const rawData = await fetchSheetData();
+    const formattedData = normalizeData(rawData);
+
+    return formattedData;
+  } catch (error) {
+    handleError("Catalog Processing Error", error);
+    return [];
+  }
+};
