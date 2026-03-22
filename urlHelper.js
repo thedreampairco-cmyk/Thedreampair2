@@ -1,34 +1,41 @@
-// urlHelper.js
-
 /**
- * Converts a standard Google Drive share link into a direct download link
- * that can be rendered by WhatsApp/Green API.
+ * Convert Google Drive links to direct usable URLs for media sending
  */
-function formatImageUrl(url) {
+export const normalizeImageUrl = (url) => {
+  try {
     if (!url) return null;
 
-    if (url.includes('drive.google.com')) {
-        // Safely extract the 25-33 character Google Drive ID, ignoring query parameters
-        const match = url.match(/[-\w]{25,33}/);
-        if (match && match[0]) {
-            return `https://drive.google.com/uc?export=download&id=${match[0]}`;
-        }
+    // If it's NOT a Google Drive link → return as is
+    if (!url.includes("drive.google.com")) {
+      return url;
     }
 
-    return url; 
-}
+    let fileId = null;
 
-/**
- * Extracts the first valid image URL found in a text string or product object.
- */
-function isImageUrl(url) {
-    if (!url) return false;
-    // 'i' flag makes it case-insensitive. (?:\?.*)? allows trailing query strings like ?v=123
-    return (url.match(/\.(jpeg|jpg|gif|png)(?:\?.*)?$/i) != null) || url.includes('drive.google.com');
-}
+    // Format 1: https://drive.google.com/file/d/FILE_ID/view
+    const fileMatch = url.match(/\/file\/d\/([^\/]+)/);
+    if (fileMatch) {
+      fileId = fileMatch[1];
+    }
 
-module.exports = {
-    formatImageUrl,
-    isImageUrl
+    // Format 2: https://drive.google.com/open?id=FILE_ID
+    const openMatch = url.match(/[?&]id=([^&]+)/);
+    if (!fileId && openMatch) {
+      fileId = openMatch[1];
+    }
+
+    if (!fileId) {
+      console.warn("⚠️ Could not extract Drive file ID");
+      return url;
+    }
+
+    // Convert to direct image URL
+    const directUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+
+    return directUrl;
+
+  } catch (error) {
+    console.error("❌ URL normalization error:", error.message);
+    return url;
+  }
 };
-
