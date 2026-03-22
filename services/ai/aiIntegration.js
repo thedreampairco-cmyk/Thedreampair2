@@ -12,8 +12,14 @@ export const generateAIResponse = async (chatId, userMessage) => {
     const history = getUserMemory(chatId);
 
     // 🔥 Fetch relevant catalog (basic name-based filtering for now)
-    const catalog = await getFilteredCatalog({ name: userMessage });
+    // 🔥 Clean user query for better matching
+const cleanedQuery = userMessage
+  .toLowerCase()
+  .replace(/price|cost|rs|₹|\?|under|above/g, "")
+  .trim();
 
+// Fetch catalog using cleaned query
+const catalog = await getFilteredCatalog({ name: cleanedQuery });
     // Convert catalog to string (keep it lightweight)
     const catalogContext = catalog.length
       ? JSON.stringify(catalog.slice(0, 5)) // limit to 5 products
